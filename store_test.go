@@ -2,6 +2,8 @@ package main
 
 import (
 	"bytes"
+	"fmt"
+	"io"
 	"testing"
 )
 
@@ -23,5 +25,17 @@ func TestStore(t *testing.T) {
 
 	if err := store.writeStream("pictures", bytes); err != nil {
 		t.Error(err)
+	}
+
+	r, err := store.Read("pictures")
+	if err != nil {
+		t.Error(err)
+	}
+	b, _ := io.ReadAll(r)
+
+	fmt.Println(string(b))
+
+	if string(b) != "some jpeg file content" {
+		t.Errorf("want %s have %s", "some jpeg file content", b)
 	}
 }
