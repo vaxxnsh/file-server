@@ -13,21 +13,22 @@ func OnPeer(peer p2p.Peer) error {
 }
 
 func main() {
-	tcpOpts := p2p.TCPTransportOpts{
+	tcpTransportOpts := p2p.TCPTransportOpts{
 		ListenAddr:    ":3000",
 		HandshakeFunc: p2p.NOHandShakeFunc,
 		Decoder:       p2p.DefaultDecoder{},
-		OnPeer:        OnPeer,
 	}
-	tr := p2p.NewTCPTransport(tcpOpts)
 
-	go func() {
-		msg := <-tr.Consume()
-		fmt.Printf("Received message: %+v\n", msg)
-	}()
+	fileServerOpts := FileServerOpts{
+		ListenAddr:        ":3000",
+		StorageRoot:       "3000_Network",
+		PathTransformFunc: CASPathTransformFunc,
+		Transport:         *p2p.NewTCPTransport(tcpTransportOpts),
+	}
 
-	if err := tr.ListenAndAccept(); err != nil {
+	s := NewFileServer(fileServerOpts)
+
+	if err := s.Start(); err != nil {
 		log.Fatal(err)
 	}
-	select {}
 }
