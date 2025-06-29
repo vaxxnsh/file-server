@@ -18,24 +18,37 @@ func TestPathTransformFunc(t *testing.T) {
 }
 
 func TestStore(t *testing.T) {
-	store := NewStore(StoreOpts{
+	s := NewStore(StoreOpts{
 		PathTransformFunc: CASPathTransformFunc,
 	})
-	bytes := bytes.NewReader([]byte("some jpeg file content"))
+	// id := generateID()
+	// id := "randomId"
+	// defer teardown(t, s)
 
-	if err := store.writeStream("pictures", bytes); err != nil {
-		t.Error(err)
-	}
+	for i := range 1 {
+		key := fmt.Sprintf("foo_%d", i)
+		data := []byte("some jpg bytes")
 
-	r, err := store.Read("pictures")
-	if err != nil {
-		t.Error(err)
-	}
-	b, _ := io.ReadAll(r)
+		if err := s.WriteStream(key, bytes.NewReader(data)); err != nil {
+			t.Error(err)
+		}
 
-	fmt.Println(string(b))
+		if ok := s.Has(key); !ok {
+			t.Errorf("expected to have key %s", key)
+		}
 
-	if string(b) != "some jpeg file content" {
-		t.Errorf("want %s have %s", "some jpeg file content", b)
+		r, err := s.Read(key)
+		if err != nil {
+			t.Error(err)
+		}
+
+		b, _ := io.ReadAll(r)
+		if string(b) != string(data) {
+			t.Errorf("want %s have %s", data, b)
+		}
+
+		if err := s.Delete(key); err != nil {
+			t.Error(err)
+		}
 	}
 }
