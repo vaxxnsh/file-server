@@ -19,14 +19,17 @@ func main() {
 		Decoder:       p2p.DefaultDecoder{},
 	}
 
+	t := p2p.NewTCPTransport(tcpTransportOpts)
+
 	fileServerOpts := FileServerOpts{
-		ListenAddr:        ":3000",
 		StorageRoot:       "3000_Network",
 		PathTransformFunc: CASPathTransformFunc,
-		Transport:         *p2p.NewTCPTransport(tcpTransportOpts),
+		Transport:         *t,
 	}
 
 	s := NewFileServer(fileServerOpts)
+
+	t.OnPeer = s.OnPeer
 
 	if err := s.Start(); err != nil {
 		log.Fatal(err)
