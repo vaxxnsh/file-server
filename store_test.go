@@ -29,7 +29,7 @@ func TestStore(t *testing.T) {
 		key := fmt.Sprintf("foo_%d", i)
 		data := []byte("some jpg bytes")
 
-		if err := s.WriteStream(key, bytes.NewReader(data)); err != nil {
+		if err := s.Write(key, bytes.NewReader(data)); err != nil {
 			t.Error(err)
 		}
 

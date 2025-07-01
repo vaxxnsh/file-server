@@ -1,8 +1,10 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/vaxxnsh/file-server/p2p"
 )
@@ -12,9 +14,9 @@ func OnPeer(peer p2p.Peer) error {
 	return nil
 }
 
-func main() {
+func makeServer(lisetenAddr string, nodes ...string) *FileServer {
 	tcpTransportOpts := p2p.TCPTransportOpts{
-		ListenAddr:    ":3000",
+		ListenAddr:    ":" + lisetenAddr,
 		HandshakeFunc: p2p.NOHandShakeFunc,
 		Decoder:       p2p.DefaultDecoder{},
 	}
@@ -22,16 +24,35 @@ func main() {
 	t := p2p.NewTCPTransport(tcpTransportOpts)
 
 	fileServerOpts := FileServerOpts{
-		StorageRoot:       "3000_Network",
+		StorageRoot:       lisetenAddr + "_Network",
 		PathTransformFunc: CASPathTransformFunc,
-		Transport:         *t,
+		Transport:         t,
+		BootstrapNodes:    nodes,
 	}
 
 	s := NewFileServer(fileServerOpts)
 
 	t.OnPeer = s.OnPeer
 
-	if err := s.Start(); err != nil {
-		log.Fatal(err)
-	}
+	return s
+}
+
+func main() {
+	s1 := makeServer("3000", "")
+	s2 := makeServer("4000", ":3000")
+	go func() {
+		log.Fatal(s1.Start())
+	}()
+
+	time.Sleep(1 * time.Second)
+
+	go s2.Start()
+
+	time.Sleep(1 * time.Second)
+
+	data := bytes.NewReader([]byte("my big data file here!"))
+
+	s2.StoreData("my private data", data)
+
+	select {}
 }

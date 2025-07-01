@@ -7,7 +7,8 @@ import (
 )
 
 type TCPPeer struct {
-	conn     net.Conn
+	// underlying connection of the peer, i.e. TCP
+	net.Conn
 	outbound bool
 }
 
@@ -33,23 +34,15 @@ func NewTCPTransport(ops TCPTransportOpts) *TCPTransport {
 
 func NewTCPPeer(conn net.Conn, outbound bool) *TCPPeer {
 	return &TCPPeer{
-		conn:     conn,
+		Conn:     conn,
 		outbound: outbound,
 	}
 }
 
-func (p *TCPPeer) RemoteAddr() net.Addr {
-	return p.conn.RemoteAddr()
-}
-
 func (p *TCPPeer) Send(b []byte) error {
-	_, err := p.conn.Write(b)
+	_, err := p.Conn.Write(b)
 
 	return err
-}
-
-func (p *TCPPeer) Close() error {
-	return p.conn.Close()
 }
 
 func (t *TCPTransport) ListenAndAccept() (err error) {
@@ -72,7 +65,9 @@ func (t *TCPTransport) Close() error {
 }
 
 func (t *TCPTransport) Dial(addr string) error {
+	fmt.Println(addr)
 	conn, err := net.Dial("tcp", addr)
+
 	if err != nil {
 		return err
 	}
@@ -111,8 +106,8 @@ func (t *TCPTransport) handleConn(conn net.Conn, outBound bool) {
 		fmt.Printf("TCP handshake error : %s\n", err)
 		return
 	}
-
 	if t.OnPeer != nil {
+
 		if err := t.OnPeer(peer); err != nil {
 			return
 		}
