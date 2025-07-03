@@ -52,7 +52,19 @@ func main() {
 
 	data := bytes.NewReader([]byte("my big data file here!"))
 
-	s2.StoreData("my private data", data)
+	s2.Store("my private data", data)
 
+	// r, err := s2.Get("my private data")
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
+
+	// b, err := io.ReadAll(r)
+
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
+
+	// fmt.Printf("Gotten bytes are : %s\n", string(b))
 	select {}
 }

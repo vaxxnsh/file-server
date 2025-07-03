@@ -4,12 +4,14 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"sync"
 )
 
 type TCPPeer struct {
 	// underlying connection of the peer, i.e. TCP
 	net.Conn
 	outbound bool
+	Wg       *sync.WaitGroup
 }
 
 type TCPTransportOpts struct {
@@ -36,6 +38,7 @@ func NewTCPPeer(conn net.Conn, outbound bool) *TCPPeer {
 	return &TCPPeer{
 		Conn:     conn,
 		outbound: outbound,
+		Wg:       &sync.WaitGroup{},
 	}
 }
 
@@ -123,7 +126,11 @@ func (t *TCPTransport) handleConn(conn net.Conn, outBound bool) {
 			return
 		}
 		rpc.From = conn.RemoteAddr()
+		peer.Wg.Add(1)
+		fmt.Println("Waiting till stream is done")
 		t.rpcChan <- rpc
+		peer.Wg.Wait()
+		fmt.Println("stream done continue")
 		// fmt.Printf("message : %+v\n", rpc)
 	}
 }
