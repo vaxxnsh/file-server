@@ -42,13 +42,15 @@ type MessageGetFile struct {
 
 func (s *FileServer) handleMessage(from string, msg *Message) error {
 
+	fmt.Println(";)" + msg.From)
+
 	switch v := msg.Payload.(type) {
 	case MessageStoreFile:
-		s.handleMessageStoreFile(from, v)
+		return s.handleMessageStoreFile(from, v)
 	case MessageGetFile:
 		return s.handleMessageGetFile(from, v)
 	default:
-		fmt.Printf("unknown message type: %T\n", v)
+		fmt.Printf(":) unknown message type: %v\n", v)
 	}
 	return nil
 }
@@ -99,7 +101,7 @@ func (s *FileServer) Get(key string) (io.Reader, error) {
 		return s.store.Read(key)
 	}
 
-	fmt.Printf("don't have file locally fetching from network")
+	fmt.Printf("don't have file locally fetching from network\n")
 
 	msg := Message{
 		Payload: MessageGetFile{
@@ -111,18 +113,22 @@ func (s *FileServer) Get(key string) (io.Reader, error) {
 		return nil, err
 	}
 
+	time.Sleep(2 * time.Second)
+
 	for _, peer := range s.peers {
-		fmt.Println("recving stream from peer : ", peer)
-		fileBuffer := new(bytes.Buffer)
-		n, err := io.CopyN(fileBuffer, peer, 22)
+		fmt.Println("key is : ", key)
+		n, err := s.store.Write(key, io.LimitReader(peer, 22))
 		if err != nil {
 			return nil, err
 		}
-		fmt.Println("received bytes over the network: ", n)
-		fmt.Println(fileBuffer.String())
+
+		fmt.Printf("[%s] recieved (%d) bytes over the network from (%s)\n",
+			s.Transport.Addr(), n, peer.RemoteAddr().String())
+
+		peer.CloseStream()
 	}
 
-	return nil, nil
+	return s.store.Read(key)
 }
 
 func (s *FileServer) Store(key string, r io.Reader) error {
@@ -179,6 +185,7 @@ func (s *FileServer) loop() {
 			var msg Message
 			if err := gob.NewDecoder(bytes.NewReader(rpc.Payload)).Decode(&msg); err != nil {
 				log.Println("decoding error : ", err)
+				continue
 			}
 
 			if err := s.handleMessage(rpc.From.String(), &msg); err != nil {
@@ -204,6 +211,7 @@ func (s *FileServer) broadcast(msg *Message) error {
 	msgBuf := new(bytes.Buffer)
 
 	if err := gob.NewEncoder(msgBuf).Encode(msg); err != nil {
+
 		return err
 	}
 
