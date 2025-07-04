@@ -7,6 +7,7 @@ import "net"
 type Peer interface {
 	net.Conn
 	Send([]byte) error
+	CloseStream()
 }
 
 /*
@@ -16,6 +17,7 @@ type Peer interface {
 */
 
 type Transport interface {
+	Addr() string
 	Dial(string) error
 	ListenAndAccept()
 	Consume() <-chan RPC

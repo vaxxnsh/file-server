@@ -89,7 +89,7 @@ func (s *FileServer) handleMessageStoreFile(from string, msg MessageStoreFile) e
 	if err != nil {
 		return err
 	}
-	peer.(*p2p.TCPPeer).Wg.Done()
+	peer.CloseStream()
 	log.Printf("Wrote %d bytes to disk", n)
 	return nil
 }
@@ -148,14 +148,15 @@ func (s *FileServer) Store(key string, r io.Reader) error {
 		return err
 	}
 
-	time.Sleep(3 * time.Second)
+	time.Sleep(5 * time.Millisecond)
 
 	for _, peer := range s.peers {
+		peer.Send([]byte{p2p.IncomingStream})
 		n, err := io.Copy(peer, fileBuffer)
 		if err != nil {
 			return err
 		}
-		fmt.Printf("recieved and written %d bytes", n)
+		fmt.Printf("[%s] recieved and written %d bytes\n", s.Transport.Addr(), n)
 	}
 
 	return nil
@@ -207,6 +208,7 @@ func (s *FileServer) broadcast(msg *Message) error {
 	}
 
 	for _, peer := range s.peers {
+		peer.Send([]byte{p2p.IcomingMessage})
 		if err := peer.Send(msgBuf.Bytes()); err != nil {
 			return err
 		}
