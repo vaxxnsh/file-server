@@ -24,6 +24,7 @@ func makeServer(lisetenAddr string, nodes ...string) *FileServer {
 	t := p2p.NewTCPTransport(tcpTransportOpts)
 
 	fileServerOpts := FileServerOpts{
+		EncKey:            newEncryptionKey(),
 		StorageRoot:       lisetenAddr + "_Network",
 		PathTransformFunc: CASPathTransformFunc,
 		Transport:         t,
