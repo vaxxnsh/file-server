@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"fmt"
+	"io"
 	"log"
 	"time"
 
@@ -41,31 +42,46 @@ func makeServer(lisetenAddr string, nodes ...string) *FileServer {
 func main() {
 	s1 := makeServer("3000", "")
 	s2 := makeServer("4000", ":3000")
+	s3 := makeServer("5000", ":3000", ":4000")
 	go func() {
 		log.Fatal(s1.Start())
 	}()
 
 	time.Sleep(1 * time.Second)
 
-	go s2.Start()
+	go func() {
+		log.Fatal(s2.Start())
+	}()
 
 	time.Sleep(1 * time.Second)
 
-	data := bytes.NewReader([]byte("that a cool picture"))
-	s2.Store("coolPicture.jpg", data)
-	time.Sleep(5 * time.Millisecond)
+	go s3.Start()
 
-	// r, err := s2.Get("coolPicture.jpg")
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
+	time.Sleep(1 * time.Second)
 
-	// b, err := io.ReadAll(r)
+	for i := range 1 {
+		key := fmt.Sprintf("coolPicture_%d.jpg", i)
+		data := bytes.NewReader([]byte("that a cool picture"))
+		s3.Store(key, data)
+		time.Sleep(5 * time.Millisecond)
 
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
+		if err := s3.store.Delete(key); err != nil {
+			log.Fatal(err)
+		}
 
-	// fmt.Printf("Gotten bytes are : %s\n", string(b))
+		r, err := s3.Get(key)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		b, err := io.ReadAll(r)
+
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		fmt.Printf("Gotten bytes are : %s\n", string(b))
+		time.Sleep(1 * time.Second)
+	}
 	select {}
 }
