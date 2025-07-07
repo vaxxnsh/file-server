@@ -8,41 +8,37 @@ import (
 )
 
 func TestPathTransformFunc(t *testing.T) {
-	key := "someGoodPicture"
-	pathname := CASPathTransformFunc(key)
-	expectedFileName := "6f96b0131ba704777da4411846af2cc0e8efddd7"
-	expected := "6f96b/0131b/a7047/77da4/41184/6af2c/c0e8e/fddd7"
-
-	if pathname.Pathname != expected {
-		t.Errorf("want %s have %s", expected, pathname)
+	key := "momsbestpicture"
+	pathKey := CASPathTransformFunc(key)
+	expectedFilename := "6804429f74181a63c50c3d81d733a12f14a353ff"
+	expectedPathName := "68044/29f74/181a6/3c50c/3d81d/733a1/2f14a/353ff"
+	if pathKey.Pathname != expectedPathName {
+		t.Errorf("have %s want %s", pathKey.Pathname, expectedPathName)
 	}
 
-	if pathname.FileName != expectedFileName {
-		t.Errorf("have %s want %s", pathname.FileName, expectedFileName)
+	if pathKey.FileName != expectedFilename {
+		t.Errorf("have %s want %s", pathKey.FileName, expectedFilename)
 	}
 }
 
 func TestStore(t *testing.T) {
-	s := NewStore(StoreOpts{
-		PathTransformFunc: CASPathTransformFunc,
-	})
-	// id := generateID()
-	// id := "randomId"
-	// defer teardown(t, s)
+	s := newStore()
+	id := generateID()
+	defer teardown(t, s)
 
-	for i := range 50 {
+	for i := 0; i < 50; i++ {
 		key := fmt.Sprintf("foo_%d", i)
 		data := []byte("some jpg bytes")
 
-		if _, err := s.Write(key, bytes.NewReader(data)); err != nil {
+		if _, err := s.writeStream(id, key, bytes.NewReader(data)); err != nil {
 			t.Error(err)
 		}
 
-		if ok := s.Has(key); !ok {
+		if ok := s.Has(id, key); !ok {
 			t.Errorf("expected to have key %s", key)
 		}
 
-		_, r, err := s.Read(key)
+		_, r, err := s.Read(id, key)
 		if err != nil {
 			t.Error(err)
 		}
@@ -52,8 +48,25 @@ func TestStore(t *testing.T) {
 			t.Errorf("want %s have %s", data, b)
 		}
 
-		if err := s.Delete(key); err != nil {
+		if err := s.Delete(id, key); err != nil {
 			t.Error(err)
 		}
+
+		if ok := s.Has(id, key); ok {
+			t.Errorf("expected to NOT have key %s", key)
+		}
+	}
+}
+
+func newStore() *Store {
+	opts := StoreOpts{
+		PathTransformFunc: CASPathTransformFunc,
+	}
+	return NewStore(opts)
+}
+
+func teardown(t *testing.T, s *Store) {
+	if err := s.Clear(); err != nil {
+		t.Error(err)
 	}
 }
