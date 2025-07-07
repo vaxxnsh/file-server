@@ -131,6 +131,29 @@ func (s *Store) Write(key string, r io.Reader) (int64, error) {
 	return s.writeStream(key, r)
 }
 
+func (s *Store) WriteDecrypt(encKey []byte, key string, r io.Reader) (int64, error) {
+	pathKey := s.PathTransformFunc(key)
+	pathKeyWithRoot := fmt.Sprintf("%s/%s", s.Root, pathKey.Pathname)
+	if err := os.MkdirAll(pathKeyWithRoot, os.ModePerm); err != nil {
+		return 0, err
+	}
+
+	fullPathWithRoot := fmt.Sprintf("%s/%s", s.Root, pathKey.FullPath())
+
+	f, err := os.Create(fullPathWithRoot)
+
+	if err != nil {
+		return 0, err
+	}
+	n, err := copyDecrypt(encKey, r, f)
+
+	if err != nil {
+		return 0, err
+	}
+
+	return int64(n), nil
+}
+
 func (s *Store) writeStream(key string, r io.Reader) (int64, error) {
 	pathKey := s.PathTransformFunc(key)
 	pathKeyWithRoot := fmt.Sprintf("%s/%s", s.Root, pathKey.Pathname)
@@ -145,11 +168,5 @@ func (s *Store) writeStream(key string, r io.Reader) (int64, error) {
 	if err != nil {
 		return 0, err
 	}
-	n, err := io.Copy(f, r)
-
-	if err != nil {
-		return 0, err
-	}
-
-	return n, nil
+	return io.Copy(f, r)
 }
