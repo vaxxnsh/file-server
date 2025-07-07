@@ -59,7 +59,7 @@ func main() {
 
 	time.Sleep(1 * time.Second)
 
-	for i := range 1 {
+	for i := range 10 {
 		key := fmt.Sprintf("coolPicture_%d.jpg", i)
 		data := bytes.NewReader([]byte("that a cool picture"))
 		s3.Store(key, data)
@@ -83,5 +83,4 @@ func main() {
 		fmt.Printf("Gotten bytes are : %s\n", string(b))
 		time.Sleep(1 * time.Second)
 	}
-	select {}
 }

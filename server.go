@@ -59,7 +59,7 @@ func (s *FileServer) handleMessage(from string, msg *Message) error {
 
 func (s *FileServer) handleMessageGetFile(from string, msg MessageGetFile) error {
 	if !s.store.Has(msg.ID, msg.Key) {
-		return fmt.Errorf("file (%s) does not exist on disk", msg.Key)
+		return fmt.Errorf("[%s] need to serve file (%s) but it does not exist on disk", s.Transport.Addr(), msg.Key)
 	}
 
 	fmt.Printf("[%s] serving file (%s) over the network\n", s.Transport.Addr(), msg.Key)
@@ -108,6 +108,7 @@ func (s *FileServer) handleMessageStoreFile(from string, msg MessageStoreFile) e
 
 func (s *FileServer) Get(key string) (io.Reader, error) {
 	if s.store.Has(s.ID, key) {
+		fmt.Printf("[%s] serving file (%s) from local disk\n", s.Transport.Addr(), key)
 		_, r, err := s.store.Read(s.ID, key)
 		return r, err
 	}
@@ -116,8 +117,8 @@ func (s *FileServer) Get(key string) (io.Reader, error) {
 
 	msg := Message{
 		Payload: MessageGetFile{
-			Key: hashKey(key),
 			ID:  s.ID,
+			Key: hashKey(key),
 		},
 	}
 
@@ -125,7 +126,7 @@ func (s *FileServer) Get(key string) (io.Reader, error) {
 		return nil, err
 	}
 
-	time.Sleep(2 * time.Second)
+	time.Sleep(500 * time.Millisecond)
 
 	for _, peer := range s.peers {
 		var fileSize int64
@@ -150,17 +151,16 @@ func (s *FileServer) Get(key string) (io.Reader, error) {
 func (s *FileServer) Store(key string, r io.Reader) error {
 
 	fileBuffer := new(bytes.Buffer)
-
 	tee := io.TeeReader(r, fileBuffer)
 
 	size, err := s.store.Write(s.ID, key, tee)
-
 	if err != nil {
 		return err
 	}
 
 	msg := Message{
 		Payload: MessageStoreFile{
+			ID:   s.ID,
 			Key:  hashKey(key),
 			Size: size + 16,
 		},

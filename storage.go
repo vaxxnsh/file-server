@@ -40,7 +40,6 @@ var DefaultPathTransformFunc = func(key string) string {
 }
 
 type StoreOpts struct {
-	ID                string
 	Root              string
 	PathTransformFunc PathTransformFunc
 }
@@ -57,10 +56,6 @@ type PathKey struct {
 func NewStore(opts StoreOpts) *Store {
 	if len(opts.Root) == 0 {
 		opts.Root = DefaultRootName
-	}
-
-	if len(opts.ID) == 0 {
-		opts.ID = generateID()
 	}
 
 	return &Store{

@@ -19,7 +19,7 @@ type Peer interface {
 type Transport interface {
 	Addr() string
 	Dial(string) error
-	ListenAndAccept()
+	ListenAndAccept() error
 	Consume() <-chan RPC
 	Close() error
 }
